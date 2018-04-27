@@ -1,0 +1,305 @@
+---
+title: "Untitled"
+output: html_document
+---
+# 1.Setup
+## 1.a Boilerplate: packages, library, setting modifications, etc
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+# knitr::opts_chunk$set(echo = TRUE)
+## location, location, location!
+setwd(dir="C:/Users/matti/Desktop/Office/A. Quick Files/PS 239T/Final Project")
+# getwd()
+library(pacman) # thanks Jae
+p_load("dplyr", "tidyr", "tidyverse", "plyr", "readr", "readxl", "ff", "data.table", "qdap", "car", "qwraps2", "sf", "xlsx", "ggplot2", "ggthemes", "scales", "gtools", "scales", "reshape2")
+## setting modifications
+options(max.print=1000000)
+## ggplot settings
+# theme_set(theme_bw()) ##<- if you need to reset
+theme_set(theme_economist(base_size = 11, base_family = ""))
+theme(plot.title = element_text(face="bold", size=15), axis.title.x = element_text( face="bold", size=15), axis.title.y = element_text( face="bold", size=15))
+```
+## 1.b Load data
+```{r}
+## Load data
+petitlarceny <- read.csv(file="./z. finaldata/petitlarceny4.17.h.csv") ##latest version
+petitlarceny <- petitlarceny[, c("PRECINCT_ID", "DIST_ENTR", "DIST_SHLTR", "DIST_WIFI", "DIST_MUNI", "DIST_LIB")] #only want these rn
+precincts <- read.csv(file="./z. finaldata/precincts2.csv")
+##if u need these below
+colnames(petitlarceny) 
+nrow(petitlarceny)
+head(petitlarceny)
+colnames(precincts)
+precincts
+```
+
+# 2. Analysis: means and medians of variables for each precinct
+Variables of analysis: Subway Entrances, Bus Stop Shelters, Wifi Hotspots, Munimeters, Public Libraries
+# 2.a Distance averages to each variable
+```{r}
+##Lets find the mean distance of a larceny to each variable, based on precinct
+meanies <- aggregate(petitlarceny, list(petitlarceny$PRECINCT_ID), mean)*3.28084 # multiply distance by 3.28084 bc QGIS uses meters
+# meanies$PRECINCT_ID <- meanies$PRECINCT_ID/3.28084 ## convert the ID's back
+meanies <- subset(meanies, select = -Group.1) #dont needs this
+colnames(meanies) # make sure they are labled
+setnames(meanies, old = c("DIST_ENTR", "DIST_SHLTR", "DIST_WIFI", "DIST_MUNI", "DIST_LIB"  ), new = c("DIST_ENTR_MEAN", "DIST_SHLTR_MEAN", "DIST_WIFI_MEAN", "DIST_MUNI_MEAN", "DIST_LIB_MEAN"))
+meanies
+#now lets find the median distance of a larceny to each infra, based on precinct
+medians <- aggregate(petitlarceny, list(petitlarceny$PRECINCT_ID), median)*3.28084 ## multiply distance by 3.28084 bc QGIS uses meters
+# medians$PRECINCT_ID <- medians$PRECINCT_ID/3.28084 ## convert the ID's back
+medians <- subset(medians, select = -Group.1) ## dont need this
+setnames(medians, old = c("DIST_ENTR", "DIST_SHLTR", "DIST_WIFI", "DIST_MUNI", "DIST_LIB"  ), new = c("DIST_ENTR_MEDIAN", "DIST_SHLTR_MEDIAN", "DIST_WIFI_MEDIAN", "DIST_MUNI_MEDIAN", "DIST_LIB_MEDIAN"))
+medians
+##sew them together
+precincts <- precincts*3.28084 ## long story, check 7 lines below to see why lol
+precincts <- merge(precincts, meanies)
+precincts <- merge(precincts, medians)
+head(precincts)
+colnames(precincts) ## aha
+##also forgot the crime per capita
+precincts <- precincts/3.28084 ## okay the merge got messed up and only produced 68. so i decided to convert everyting to meters... even the ID's and population by 3.28084 and then just divided it all back after the merge. They're all the same btw, idk why
+##precinct 22 is Central Park. It's screwing up the graphs since it has a pop density of 18 making petty larceny 40000 per capita! Lets remove it
+precincts <- precincts[-13,]
+precincts
+# write.csv(precincts, file="./z. finaldata/precincts2.csv")
+# precincts <- read.csv(file = "./z. finaldata/precincts2.csv")
+head(precincts)
+```
+
+## 2.b Aggregate precinct data
+```{r}
+##Dont need that
+precinctss <- subset(precincts, select = -PRECINCT_ID)
+##means for each
+precinct_averages <- colMeans(precinctss)
+precinct_summary <- data.frame(precinct_averages)
+##lets see the averages of each column
+precinct_summary
+write.csv(precinct_summary, file="./z. finaldata/precinct_summary.csv")
+```
+
+## 2.c Per capita for each column
+```{r}
+##start new datafame
+precinct_percap <- precincts[, c("PRECINCT_ID", "PRECINCT_POPDENSITY")]
+## per capita for each of the following items. Rates are measured in per 100000 persons
+precinct_percap$LARCENY_PER_CAPITA <- (precincts$LARCENIES_PRECINCT/precincts$PRECINCT_POP)*100000
+precinct_percap$SBWYS_PER_CAPITA <- (precincts$NUM_SBWYS/precincts$PRECINCT_POP)*100000
+precinct_percap$BUS_PER_CAPITA <- (precincts$NUM_BUS/precincts$PRECINCT_POP)*100000
+precinct_percap$WIFI_PER_CAPITA <- (precincts$NUM_WIFI/precincts$PRECINCT_POP)*100000
+precinct_percap$MUNI_PER_CAPITA <- (precincts$NUM_MUNIMETER/precincts$PRECINCT_POP)*100000
+precinct_percap$LIBRY_PER_CAPITA <- (precincts$NUM_LIBRARY/precincts$PRECINCT_POP)*100000
+#check
+precinct_percap 
+# write.csv(precinct_percap, file="./z. finaldata/precinct_percapita.csv")
+```
+
+## 2.d Analyze data
+```{r}
+## Lets look at them now. Here so you can look at them while creating graphs
+precincts
+precinct_summary
+precinct_percap 
+```
+
+# 3. Visualization
+## 3.a larceny to population
+```{r}
+## larceny to population graph
+larceny2pop <- ggplot(precincts, aes(x=precincts[,3], y=precincts[,5])) + geom_point( size=1) +  geom_smooth(method="lm", se=TRUE, fullrange=FALSE, level=9.5, color="blue") + xlab("Population") + ylab("Petty Larceny") + ggtitle("Petty Larceny to Population") # + xlim(0,1000) + ylim(0,1000)
+larceny2pop 
+## Relative positions to other precincts 1-77 (y axis is sequenced)
+relative_larceny2pop <- ggplot(precincts, aes(x=precincts[,3], y=seq(precincts[,5]))) + geom_point( size=1) +  geom_smooth(method="lm", se=TRUE, fullrange=FALSE, level=9.5, color="blue") + xlab("Population") + ylab("Petty Larceny") + ggtitle("Petty Larceny to Population (Relative)") # + xlim(0,1000) + ylim(0,1000)
+relative_larceny2pop 
+```
+Lets try again with pop density
+```{r}
+## THis graph is for larceny to population density
+larceny2popdensity <- ggplot(precincts, aes(x=precincts[,4], y=precincts[,5])) + geom_point( size=1) +  geom_smooth(method="lm", se=TRUE, fullrange=TRUE, level=9.5, color="blue") + xlab("Population Density") + ylab("Petty Larceny") + ggtitle("Petty Larceny to Population Density") # + xlim(0,1000) + ylim(0,1000)
+larceny2popdensity
+## Relative positions to other precincts 1-77 (y axis is sequenced)
+relative_larceny2popdensity <- ggplot(precincts, aes(x=precincts[,4], y=seq(precincts[,5]))) + geom_point( size=1) +  geom_smooth(method="lm", se=TRUE, fullrange=TRUE, level=9.5, color="blue") + xlab("Population Density") + ylab("Petty Larceny") + ggtitle("Petty Larceny to Population Density (Relatve)") # + xlim(0,1000) + ylim(0,1000)
+relative_larceny2popdensity
+```
+Okay so it seems like less densely populated is associated with a higher rate of petty larceny while higher rates of larceny are very loosely associated with higher populations.
+
+Now lets see larceny per capita rate vs pop density
+```{r}
+## THis graph is for larceny to population density
+percaplarceny2popdensity <- ggplot(precinct_percap, aes(x=precinct_percap[,2], y=precinct_percap[,3])) + geom_point( size=1) +  geom_smooth(method="lm", se=TRUE, fullrange=TRUE, level=9.5, color="blue") + xlab("Population Density") + ylab("Petty Larceny Per Capita") + ggtitle("Petty Larceny rate to Pop Density") # + xlim(0,1000) + ylim(0,1000)
+percaplarceny2popdensity ## eh
+## Relative positions to other precincts 1-77 (y axis is sequenced)
+relative_percaplarceny2popdensity <- ggplot(precinct_percap, aes(x=precinct_percap[,2], y=seq(precinct_percap[,3]))) + geom_point( size=1) +  geom_smooth(method="lm", se=TRUE, fullrange=TRUE, level=9.5, color="blue") + xlab("Population Density") + ylab("Petty Larceny Per Capita") + ggtitle("Petty Larceny rate to Pop Density (Relatve)") # + xlim(0,1000) + ylim(0,1000)
+relative_percaplarceny2popdensity ## eh
+```
+
+## 3.b Population to x variable
+Population to subway entrances
+```{r}
+## check for the names
+colnames(precincts)
+subways2pop <- ggplot(precincts, aes(x=precincts[,3], y=precincts[,6])) + geom_point( size=1) +  geom_smooth(method="lm", se=TRUE, fullrange=FALSE, level=9.5, color="blue") + xlab("Population Density") + ylab("Subway Entrances") + ggtitle("Subway Entrances to Population") # + xlim(0,1000) + ylim(0,1000)
+subways2pop ## okay that doesn't really tell us anything
+## Relative positions to other precincts 1-77 (y axis is sequenced)
+relative_subways2pop <- ggplot(precincts, aes(x=precincts[,3], y=seq(precincts[,6]))) + geom_point( size=1) +  geom_smooth(method="lm", se=TRUE, fullrange=FALSE, level=9.5, color="blue") + xlab("Population Density") + ylab("Subway Entrances") + ggtitle("Subway Entrances to Population (Relative)") # + xlim(0,1000) + ylim(0,1000)
+relative_subways2pop ## okay that doesn't really tell us anything
+```
+
+Population to Bus Shelters Graphs
+```{r}
+## Bus shelters
+bus2pop <- ggplot(precincts, aes(x=precincts[,3], y=precincts[,7])) + geom_point( size=1) +  geom_smooth(method="lm", se=TRUE, fullrange=FALSE, level=9.5, color="blue") + xlab("Population Density") + ylab("Bus Shelters") + ggtitle("Bus Shelters to Population") # + xlim(0,1000) + ylim(0,1000)
+bus2pop ## 
+## Relative positions to other precincts 1-77 (y axis is sequenced)
+relative_bus2pop <- ggplot(precincts, aes(x=precincts[,3], y=seq(precincts[,7]))) + geom_point( size=1) +  geom_smooth(method="lm", se=TRUE, fullrange=FALSE, level=9.5, color="blue") + xlab("Population Density") + ylab("Bus Shelters") + ggtitle("Bus Shelters to Population (Relative)") # + xlim(0,1000) + ylim(0,1000)
+relative_bus2pop 
+```
+
+Wifi to Population Graphs
+```{r}
+## wifi Locations
+colnames(precincts)
+wifi2pop <- ggplot(precincts, aes(x=precincts[,3], y=precincts[,8])) + geom_point( size=1) +  geom_smooth(method="lm", se=TRUE, fullrange=FALSE, level=9.5, color="blue") + xlab("Population Density") + ylab("Wifi") + ggtitle("Wifi Locations to Population") # + xlim(0,1000) + ylim(0,1000)
+wifi2pop 
+## Relative positions to other precincts 1-77 (y axis is sequenced)
+relative_wifi2pop <- ggplot(precincts, aes(x=precincts[,3], y=seq(precincts[,8]))) + geom_point( size=1) +  geom_smooth(method="lm", se=TRUE, fullrange=FALSE, level=9.5, color="blue") + xlab("Population Density") + ylab("Wifi") + ggtitle("Wifi Locations to Population (Relative)")
+relative_wifi2pop
+```
+
+Munimeters to population Graphs
+```{r}
+## Munimeters
+muni2pop <- ggplot(precincts, aes(x=precincts[,3], y=precincts[,9])) + geom_point( size=1) +  geom_smooth(method="lm", se=TRUE, fullrange=FALSE, level=9.5, color="blue") + xlab("Population Density") + ylab("Munimeter") + ggtitle("Munimeters to Population") # + xlim(0,1000) + ylim(0,1000)
+muni2pop ## 
+## Relative positions to other precincts 1-77 (y axis is sequenced)
+relative_muni2pop <- ggplot(precincts, aes(x=precincts[,3], y=seq(precincts[,9]))) + geom_point( size=1) +  geom_smooth(method="lm", se=TRUE, fullrange=FALSE, level=9.5, color="blue") + xlab("Population Density") + ylab("Munimeters") + ggtitle("Munimeters to Population (Relative)") # + xlim(0,1000) + ylim(0,1000)
+relative_muni2pop
+```
+
+Libraries to Population Graphs
+```{r}
+## Read a book!
+libraries2pop <- ggplot(precincts, aes(x=precincts[,3], y=precincts[,10])) + geom_point( size=1) +  geom_smooth(method="lm", se=TRUE, fullrange=FALSE, level=9.5, color="blue") + xlab("Population Density") + ylab("Libraries") + ggtitle("Libraries to Population") # + xlim(0,1000) + ylim(0,1000)
+library2pop 
+## Relative positions to other precincts 1-77 (y axis is sequenced)
+relative_library2pop <- ggplot(precincts, aes(x=precincts[,3], y=seq(precincts[,10]))) + geom_point( size=1) +  geom_smooth(method="lm", se=TRUE, fullrange=FALSE, level=9.5, color="blue") + xlab("Population Density") + ylab("Libraries") + ggtitle("Libraries to Population (Relative)") # + xlim(0,1000) + ylim(0,1000)
+relative_library2pop
+```
+
+## 3.c Comparing the distances of each variable per precinct
+```{r}
+## Make smaller df for the graph
+colnames(precincts)
+precinct1 <- precincts[,c(1, 16:20)]
+precinct1
+## melt it so that it can work with ggplot 
+melted_precinct <- melt(precinct1, id.vars="PRECINCT_ID", value.name="value", variable.name="variable")
+#plot below
+distances_variables <- ggplot(data=melted_precinct, aes(x=PRECINCT_ID, y=value, group = variable, colour = variable)) + ylab("Distance (feet)") + xlab("Precinct") + ggtitle("Mean variable Dist to Petty Larceny by Precinct") + geom_line() + geom_point( size=1, shape=21, fill="black") + scale_x_discrete(limits=c(1:123)) + theme(axis.text.x = element_text(size=1)) + theme(legend.text=element_text(size=5)) + ylim(0,750) #750 one block face away
+distances_variables
+```
+
+## 4. Statistical Analysis for Distances and X variable (too early to make conclusion but lets see what happens when pop density is compared to each variable's average distance to a petty larceny incident)
+
+## 4.a Population Density and Distance to Nearest Subway
+Both the Welch Two Sample t-test and Pearson's product-moment correlation output a p-value higher than .05, thus revealing there is no statistical significances between pop density and a petty larceny's distance to x variable.
+```{r}
+colnames(precincts)
+x1 <- precincts$PRECINCT_POPDENSITY
+y1 <- precincts$DIST_ENTR_MEAN
+t.test(x1, y1, use="pairwise.complete.obs") #??? 0.05.. not
+cor.test(x1, y1, use="pairwise.complete.obs")
+```
+
+## 4.b Population Density and Distance to Nearest Bus Stop Shelter
+Result: Not Statistically Significant
+```{r}
+x2 <- precincts$PRECINCT_POPDENSITY
+y2 <- precincts$DIST_SHLTR_MEAN
+t.test(x2, y2, use="pairwise.complete.obs") #??? 0.05.. nope 
+cor.test(x2, y2, use="pairwise.complete.obs")
+```
+
+## 4.c Population Density and Distance To Nearest wifi location
+Result: Not Statistically Significant
+```{r}
+x3 <- precincts$PRECINCT_POPDENSITY
+y3 <- precincts$DIST_WIFI_MEAN
+t.test(x3, y3, use="pairwise.complete.obs") #??? 0.05.. nope 
+cor.test(x3, y3, use="pairwise.complete.obs")
+```
+
+## 4.c Population Density and Distance To Nearest Munimeter
+Result: Not Statistically Significant
+```{r}
+x4 <- precincts$PRECINCT_POPDENSITY
+y4 <- precincts$DIST_MUNI_MEAN
+t.test(x4, y4, use="pairwise.complete.obs") #??? 0.05.. nope 
+cor.test(x4, y4, use="pairwise.complete.obs")
+```
+
+## 4.c Population Density and Distance To Nearest Library
+Result: Not Statistically Significant
+```{r}
+x5 <- precincts$PRECINCT_POPDENSITY
+y5 <- precincts$DIST_LIB_MEAN
+t.test(x5, y5, use="pairwise.complete.obs") #??? 0.05.. nope 
+cor.test(x5, y5, use="pairwise.complete.obs")
+```
+## 4.d Population Density and Larceny
+Result: Not statty significant
+```{r}
+x6 <- precincts$PRECINCT_POPDENSITY
+y6 <- precincts$LARCENIES_PRECINCT
+t.test(x6, y6, use="pairwise.complete.obs") #??? 0.05.. nope 
+cor.test(x6, y6, use="pairwise.complete.obs")
+```
+
+# 5. Statistical Analysis for Larcenies Per Capita to Distances and X variable
+## 5.a Petty Larceny per Capita and Distance to Nearest Subway Entrance
+p-values: .8919 and .8345
+```{r}
+colnames(precinct_percap)
+x1 <- precinct_percap$LARCENY_PER_CAPITA
+y1 <- precincts$DIST_ENTR_MEAN
+t.test(x1, y1, use="pairwise.complete.obs") #??? 0.05.. no
+cor.test(x1, y1, use="pairwise.complete.obs")
+```
+
+## 5.b Petty Larceny per Capita and Distance to Nearest Bus Stop Shelter
+p-value: .4369, 0.009501
+```{r}
+x2 <- precinct_percap$LARCENY_PER_CAPITA
+y2 <- precincts$DIST_SHLTR_MEAN
+t.test(x2, y2, use="pairwise.complete.obs") 
+cor.test(x2, y2, use="pairwise.complete.obs") # Yes tho...
+```
+
+## 5.c Petty Larceny per Capita and Distance To Nearest wifi location
+p-value: 0.6292, 0.9251
+```{r}
+x3 <- precinct_percap$LARCENY_PER_CAPITA
+y3 <- precincts$DIST_WIFI_MEAN
+t.test(x3, y3, use="pairwise.complete.obs") #??? 0.05.. nope 
+cor.test(x3, y3, use="pairwise.complete.obs")
+```
+
+## 5.d Petty Larceny per Capita and Distance To Nearest Munimeter
+p-value: 0.499, 0.7315
+```{r}
+x4 <- precinct_percap$LARCENY_PER_CAPITA
+y4 <- precincts$DIST_MUNI_MEAN
+t.test(x4, y4, use="pairwise.complete.obs") #??? 0.05.. nope 
+cor.test(x4, y4, use="pairwise.complete.obs")
+```
+
+## 5.e Petty Larceny per Capita and Distance To Nearest Library
+p-value: 0.9907, 0.1769
+```{r}
+x5 <- precinct_percap$LARCENY_PER_CAPITA
+y5 <- precincts$DIST_LIB_MEAN
+t.test(x5, y5, use="pairwise.complete.obs") #??? 0.05.. nope 
+cor.test(x5, y5, use="pairwise.complete.obs")
+```
+
+

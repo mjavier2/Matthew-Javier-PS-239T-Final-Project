@@ -1,0 +1,205 @@
+---
+title: "Final Project for PS239T"
+Author: Matthew Javier
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+# 1. Boilerplate: packages, library, setting modifications, etc
+```{r include=FALSE}
+# knitr::opts_chunk$set(echo = TRUE)
+## location, location, location!
+setwd(dir="C:/Users/matti/Desktop/Office/A. Quick Files/PS 239T/Final Project")
+# getwd()
+library(pacman) # thanks Jae
+p_load("dplyr", "tidyr", "tidyverse", "plyr", "readr", "readxl", "ff", "data.table", "gtools", "car", "qwraps2", "ggplot2", "ggthemes", "scales", "data.table")
+## setting modifications
+options(max.print=1000000)
+options(scipen=999)
+## ggplot settings
+# theme_set(theme_bw()) ##<- if you need to reset
+theme_set(theme_economist(base_size = 11, base_family = ""))
+theme(plot.title = element_text(face="bold", size=15), axis.title.x = element_text( face="bold", size=15), axis.title.y = element_text( face="bold", size=15))
+```
+
+# 2. Precinct level data construction
+Precinct baseplate data needs work. The NYPD has population size but not density so I'll have to do that myself
+```{r}
+## Here is precinct and area
+precinctarea <- read.csv(file="./z. finaldata/raw map ingrediants/nypp.csv")
+colnames(precinctarea)
+## Here is precinct and population
+precinctpop <- read.csv(file="./z. finaldata/raw map ingrediants/nypd_precincts_and_2010_census_pop.csv")
+precinctpop <- subset(precinctpop, select = -cartodb_id) #dont need this
+precinct <- merge(precinctpop, precinctarea)
+colnames(precinct) #ew
+precinct <- precinct[,c("precinct_id", "wkt_geom", "Shape_Area", "precinct_pop")] #reorder them
+setnames(precinct , old = c("precinct_id", "wkt_geom", "Shape_Area", "precinct_pop"), new = c("PRECINCT_ID", "WKT_GEOM", "PRECINCT_AREA", "PRECINCT_POP")) # Capitalize it all
+nrow(precinct) #77 precincts in nyc
+precincts$PRECINCT_POPDENSITY <- precincts$PRECINCT_POP/(precincts$PRECINCT_AREA/27878411.9996) ## want square miles, 27878412 sq feet in sq mile
+##Make sure everything lines up
+precinct
+## 9th precinct is .75-.76 square miles, correct
+# write.csv(precinct, file="./z. finaldata/precinct.csv")
+```
+
+# 3. leaning and cutting the crime data
+Here I will cut the data to more managable sizes. I want to look at petty theft (petit larceny) the the entire month of April 2017. 
+Data: 
+- 6334 petit larceny incidents for entire month of April, 2017. (6732 including incidents without coordinates)
+```{r}
+## 2017 crimes
+nyc_crime_2017<- read.csv(file="./z. finaldata/crime/NYPD_Complaint_Data_Current_YTD.csv") 
+petitlarceny17 <- nyc_crime_2017[grep("LARCENY,PETIT", nyc_crime_2017$PD_DESC),]
+# write.csv(petitlarceny17, file = "petitlarceny17.csv")
+petitlarceny4.17 <- petitlarceny17[grep("4/.*/2017", petitlarceny17$CMPLNT_FR_DT),]
+colnames(petitlarceny4.17)
+setnames(petitlarceny4.17, old = c("Latitude","Longitude", "ADDR_PCT_CD"), new = c("LATITUDE","LONGITUDE", "PRECINCT_ID")) # Keep everything standardized, only these ones not capitalized
+## Add in population density from precincts data
+precinctsshort <- precinct[,c("PRECINCT_ID", "PRECINCT_POPDENSITY")]
+petitlarceny4.17a <- merge(petitlarceny4.17, precinctsshort)
+## Reorder them
+petitlarceny4.17 <- petitlarceny4.17[, c("CMPLNT_NUM", "CMPLNT_FR_DT", "CMPLNT_FR_TM", "OFNS_DESC", "PD_DESC", "JURIS_DESC", "PRECINCT_ID", "PRECINCT_POPDENSITY", "LOC_OF_OCCUR_DESC", "PREM_TYP_DESC", "LATITUDE", "LONGITUDE")]
+# write.csv(petitlarceny4.17, file = "petitlarceny4.17.csv")
+nrow(petitlarceny4.17) ## 6334 petit larceny occured April 2017
+# petitlarceny4.17 <- read.csv(file="./z. finaldata/crime/petitlarceny4.17.csv") 
+```
+
+## 4. Use QGIS to create distance matrix
+In QGIS I will run a KNN algorithm to find distance, export the attribute table that contains the results to csv, then load that into R and merge data
+## 4.a Subway Entrances
+```{r}
+## QGIS Distance Matrx output
+nearestsubway <- unique(read.csv(file="./z. finaldata/nearestsubway.csv")) ## sometimes QGIS KNN creates duplicates
+identical(nrow(petitlarceny4.17), nrow(nearestsubway))
+## Merge it to master datasheet
+petitlarceny4.17.a <- merge(petitlarceny4.17, nearestsubway)
+## Add subway characteristics
+subways <- read.csv(file="./z. finaldata/raw map ingrediants/DOITT_SUBWAY_ENTRANCE_01_13SEPT2010.csv")
+## Lets extract the_geom into long and lat
+sub1 <- sub("POINT ", "", subways[,3])
+sub2 <- sub("[(]", "", sub1)
+sub3 <- sub("[)]", "", sub2)
+sub4 <- sub(".*? (.+)", "\\1", sub3)
+subways$latitude <- sub4
+subways$longitude <- unlist(genXtract(subways[[3]], "POINT (", "40."))
+subwayz <- subset(subways, select = -the_geom)
+subwayz <- subset(subwayz, select = -SUBWAY_ENTRANCE)
+head(subwayz) ## much better!
+## Merge 
+petitlarceny4.17.b <- merge(petitlarceny4.17.a, subwayz)
+petitlarceny4.17.b <- petitlarceny4.17.b[!duplicated(petitlarceny4.17.b$CMPLNT_NUM),]
+nrow(petitlarceny4.17.b) ## make sure it's 6334
+head(petitlarceny4.17.b)
+## Save it!
+# write.csv(petitlarceny4.17.b, file = "petitlarceny4.17.b.csv")
+```
+
+## 4.b Bus Shelters
+```{r}
+petitlarceny4.17.b <- read.csv(file="./z. finaldata/petitlarceny4.17.b.csv")
+## QGIS Distance Matrx output
+busshelters <- read.csv(file="./z. finaldata/raw map ingrediants/Bus_Stop_Shelter.csv")
+## QGIS Distance Matrx output for nearest bus shelter
+nearestbus <- unique(read.csv(file="./finaldata/nearestbus.csv"))
+identical(nrow(nearestbus), nrow(petitlarceny4.17)) 
+## Merge it to master datasheet
+petitlarceny4.17.c <- merge(petitlarceny4.17.b, nearestbus)
+petitlarceny4.17.cc <- merge(petitlarceny4.17.c, busshelters[, c("LONGITUDE", "LATITUDE")]) #They are already separated
+petitlarceny4.17.c <- petitlarceny4.17.cc[!duplicated(petitlarceny4.17.c$CMPLNT_NUM),]
+nrow(petitlarceny4.17.c) ## make sure it's 6334
+print(petitlarceny4.17.c, nrow=100) ## did it merge correctly?
+## Save it!
+# write.csv(petitlarceny4.17.c, "petitlarceny4.17.c.csv")
+```
+
+## 4.c WIFI
+```{r}
+petitlarceny4.17.c <- read.csv(file="./z. finaldata/petitlarceny4.17.c.csv")
+## QGIS Distance Matrx output
+wifi <- read.csv(file="./z. finaldata/raw map ingrediants/NYC_Free_Public_WiFi_03292017.csv")
+## QGIS Distance Matrx output for nearest bus shelter
+nearestwifi <- unique(read.csv(file="./z. finaldata/nearestwifi.csv"))
+## Merge it to master datasheet
+petitlarceny4.17.d <- merge(petitlarceny4.17.c, nearestwifi)
+petitlarceny4.17.d <- petitlarceny4.17.d[!duplicated(petitlarceny4.17.d$CMPLNT_NUM),]
+## Merge again
+petitlarceny4.17.e <- merge(petitlarceny4.17.d, wifi[, c("LAT", "LON")])
+petitlarceny4.17.e <- petitlarceny4.17.e[!duplicated(petitlarceny4.17.e$CMPLNT_NUM),]
+nrow(petitlarceny4.17.e) ## make sure it's 6334
+print(petitlarceny4.17.e, nrow=100) ## did it merge correctly?
+## Save it!
+# write.csv(petitlarceny4.17.e, "petitlarceny4.17.e.csv")
+```
+
+## 4.d Munimeters
+```{r}
+petitlarceny4.17.f <- read.csv(file="./z. finaldata/petitlarceny4.17.f.csv")
+## QGIS Distance Matrx output
+munimeter <- read.csv(file="./z. finaldata/nearestmunimeter.csv")
+## QGIS Distance Matrx output for nearest bus shelter
+## Merge it to master datasheet
+petitlarceny4.17.g <- merge(petitlarceny4.17.f, munimeter)
+petitlarceny4.17.g <- petitlarceny4.17.g[!duplicated(petitlarceny4.17.g$CMPLNT_NUM),]
+nrow(petitlarceny4.17.g)
+## save it 
+# write.csv(petitlarceny4.17.g, file="./z. finaldata/petitlarceny4.17.g.csv")
+```
+
+## 4.e Library
+```{r}
+petitlarceny4.17.g <- read.csv(file="./z. finaldata/petitlarceny4.17.g.csv")
+## QGIS distance matrx output for nearest library
+library <- read.csv(file="./z. finaldata/nearestlibrary.csv")
+head(library)
+## Merge it to master datasheet
+petitlarceny4.17.h <- merge(petitlarceny4.17.g, library)
+petitlarceny4.17.h <- petitlarceny4.17.h[!duplicated(petitlarceny4.17.h$CMPLNT_NUM),]
+nrow(petitlarceny4.17.h)
+head(petitlarceny4.17.h)
+## save it 
+# write.csv(petitlarceny4.17.h, file="./z. finaldata/petitlarceny4.17.h.csv")
+```
+
+## 4.f larcenybyprecinct
+Used QGIS to count how many petty larcenies occured in each precinct via vector analysis tool, count points in polygon
+```{r}
+petitlarceny4.17.h <- read.csv(file="./z. finaldata/petitlarceny4.17.h.csv") ## QGIS merged both 4.17.g and the precinct.csv/shp
+colnames(petitlarceny4.17.h)
+head(petitlarceny4.17.h)
+### QGIS ouput. Here I ran a "count polygon" algorithm that simply counts how many of a point occurs in each polygon. The polygons being the precincts
+larcenybyprecinct <- read.csv(file="./z. finaldata/larcenybyprecinct.csv")
+head(larcenybyprecinct)
+## only want these ones
+LBP <- larcenybyprecinct[,c("PRCNCT_ID", "NUM_LRCNY")] 
+petitlarceny4.17.hh <- merge(petitlarceny4.17.hh, LBP)
+petitlarceny4.17.hhh <- petitlarceny4.17.hh[!duplicated(petitlarceny4.17.hh$CMPLNT_NUM),] ##check
+# LBPeepee <- larcenybyprecinct[,c("PRCNCT_ID", "wkt_geom_PRCNCT")] #have to do geom and num_larceny separately or the geom fucks the csv up
+# petitlarceny4.17.h <- merge(petitlarceny4.17.hhh, LBPeepee)
+nrow(petitlarceny4.17.hhh) ## Note, 6332 crimes now. 2 crimes do not occur within a precinct
+# write.csv(petitlarceny4.17.hhh, file="./z. finaldata/petitlarceny4.17.h.csv")
+```
+
+# 5.  Adding number of variables to precinct data
+Here the data will be precinct oriented 
+```{r}
+precincts <- read.csv(file="./z. finaldata/precinct.csv")
+## results from QGIS, number of infrastructure in each precinct
+numlarceny <- read.csv(file="./z. finaldata/larcenybyprecinct.csv")
+numsubway <- read.csv(file="./z. finaldata/numberofsubways.csv")
+numbus <- read.csv(file="./z. finaldata/numberofbus.csv")
+numwifi <- read.csv(file="./z. finaldata/numberofwifi.csv")
+nummunimeter <- read.csv(file="./z. finaldata/numberofmunimeters.csv")
+numlibrary <- read.csv(file="./z. finaldata/numberoflibrary.csv")
+## Merging them all into one dataset
+precincts0 <- merge(precincts, numlarceny)
+precincts1 <- merge (precincts0, numsubway)
+precincts2 <- merge (precincts1, numbus)
+precincts3 <- merge (precincts2, numwifi)
+precincts4 <- merge (precincts3, nummunimeter)
+precincts5 <- merge (precincts4, numlibrary)
+## Check work
+nrow # 77 magic number
+head(precincts5)
+# write.csv(precincts5, file="./z. finaldata/precincts.csv")
+```
