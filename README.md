@@ -16,23 +16,23 @@
 ### Data
 #### Infrastructure Data
 1.nypp.csv: NYPD precinct multipoint polygons. Note, precinct 61 was a broken polygon, I literally drew the precinct by hand to solve this. Available here: https://data.cityofnewyork.us/Public-Safety/Police-Precincts/78dh-3ptz:
-2. nypd_precincts_and_2010_census_pop.csv: NYPD precincts with 2010 census population. This data is used to calculate the population density. Available here: https://dunnguyen.carto.com/tables/nypd_precincts_and_2010_census_pop/public
+2. nypd_precincts_and_2010_census_pop.csv/shp: NYPD precincts with 2010 census population. This data is used to calculate the population density. Available here: https://dunnguyen.carto.com/tables/nypd_precincts_and_2010_census_pop/public
+    Note: the .cpg, .dbf, .prj, .shx all need to be in the same folder of the shp file to be uploaded into QGIS
 3. DOITT_SUBWAY_ENTRANCE_01_13SEPT2010.csv: Subway entrance locations, available here: https://data.cityofnewyork.us/Transportation/Subway-Entrances/drex-xx56. 
-4. Bus_Stop_Shelter.csv: The PolityVI dataset, available here: https://data.cityofnewyork.us/Transportation/Bus-Stop-Shelters/qafz-7myz
+4. Bus_Stop_Shelter.csv: Dataset with bus stop shelters, available here: https://data.cityofnewyork.us/Transportation/Bus-Stop-Shelters/qafz-7myz
 5. MUNIMETER.csv: Dataset with the locations of the multi-space meters (Kiosk meters where you buy a pass and place it in your dashboard). Available here: http://www.systemicpeace.org/inscrdata.html
 6. NYC_Free_Public_WiFi_03292017.csv: Dataset for all public wifi hotspots. Available here: https://data.cityofnewyork.us/Social-Services/NYC-Wi-Fi-Hotspot-Locations/a9we-mtpn
-9. LIBRARY.csv: The PolityVI dataset, available here: http://www.systemicpeace.org/inscrdata.html
-
-*Note that the filenames from NYC Open Data are outdated. They continuously update, but fail to rename the file.
+7. LIBRARY.csv: Locations of public libraries, available here: https://data.cityofnewyork.us/Business/Library/p4pf-fyc4/data
+*Note that the filenames from NYC Open Data say they are outdated. They continuously update, but fail to rename the file.
 #### Crime data
 1. NYPD_Complaint_Data_Current_YTD.csv: All reported crimes that occurred in New York City limits, available here: https://data.cityofnewyork.us/Public-Safety/NYPD-Complaint-Data-Current-YTD/5uac-w243
     - NYPD_Incident_Level_Data_Column_Descriptions.csv for column descriptions
-2.
+2. petitlarceny4.17.csv: Github limits uploads to 100mb, the above dataset is too big so here is an abridged version with only April and select columns of interest.
 
 ### Code
 
-1. Matt-Javier-CleaningData.rmd: Loads and cleans data from NYC Open Data, also merges data produced from QGIS
-2. Matt-Javier-Analysis.rmd: Loads, cleans, and merges the raw Polity and NYT datasets into the Analysis Dataset.
+1. 01_Matt-Javier-CleaningData.rmd: Loads and cleans data from NYC Open Data, also merges data produced from QGIS
+2. 02_Matt-Javier-Analysis.rmd: Further distills precinct data, constructs graphs, and also checks the statistics.
 
 ### Results
 
