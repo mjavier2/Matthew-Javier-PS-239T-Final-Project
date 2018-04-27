@@ -1,6 +1,8 @@
 ---
 title: "Untitled"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 # 1.Setup
 ## 1.a Boilerplate: packages, library, setting modifications, etc
@@ -195,7 +197,7 @@ precinct1
 ## melt it so that it can work with ggplot 
 melted_precinct <- melt(precinct1, id.vars="PRECINCT_ID", value.name="value", variable.name="variable")
 #plot below
-distances_variables <- ggplot(data=melted_precinct, aes(x=PRECINCT_ID, y=value, group = variable, colour = variable)) + ylab("Distance (feet)") + xlab("Precinct") + ggtitle("Mean variable Dist to Petty Larceny by Precinct") + geom_line() + geom_point( size=1, shape=21, fill="black") + scale_x_discrete(limits=c(1:123)) + theme(axis.text.x = element_text(size=1)) + theme(legend.text=element_text(size=5)) + ylim(0,750) #750 one block face away
+distances_variables <- ggplot(data=melted_precinct, aes(x=PRECINCT_ID, y=value, group = variable, colour = variable)) + ylab("Distance (feet)") + xlab("Precinct") + ggtitle("Mean variable Dist to Petty Larceny by Precinct") + geom_line() + geom_point( size=1, shape=21, fill="black") + scale_x_discrete(limits=c(1:123)) + theme(axis.text.x = element_text(size=3)) + theme(legend.text=element_text(size=5)) + ylim(0,750) #750 one block face away
 distances_variables
 ```
 
@@ -204,9 +206,11 @@ distances_variables
 ## 4.a Population Density and Distance to Nearest Subway
 Both the Welch Two Sample t-test and Pearson's product-moment correlation output a p-value higher than .05, thus revealing there is no statistical significances between pop density and a petty larceny's distance to x variable.
 ```{r}
-colnames(precincts)
+colnames(precincts) #check names
+##reassign short names
 x1 <- precincts$PRECINCT_POPDENSITY
 y1 <- precincts$DIST_ENTR_MEAN
+## conduct statistical analysis t-test and correlation test
 t.test(x1, y1, use="pairwise.complete.obs") #??? 0.05.. not
 cor.test(x1, y1, use="pairwise.complete.obs")
 ```
@@ -214,8 +218,10 @@ cor.test(x1, y1, use="pairwise.complete.obs")
 ## 4.b Population Density and Distance to Nearest Bus Stop Shelter
 Result: Not Statistically Significant
 ```{r}
+##reassign short names
 x2 <- precincts$PRECINCT_POPDENSITY
 y2 <- precincts$DIST_SHLTR_MEAN
+## conduct statistical analysis
 t.test(x2, y2, use="pairwise.complete.obs") #??? 0.05.. nope 
 cor.test(x2, y2, use="pairwise.complete.obs")
 ```
@@ -223,8 +229,10 @@ cor.test(x2, y2, use="pairwise.complete.obs")
 ## 4.c Population Density and Distance To Nearest wifi location
 Result: Not Statistically Significant
 ```{r}
+##reassign short names
 x3 <- precincts$PRECINCT_POPDENSITY
 y3 <- precincts$DIST_WIFI_MEAN
+## Check the statistics
 t.test(x3, y3, use="pairwise.complete.obs") #??? 0.05.. nope 
 cor.test(x3, y3, use="pairwise.complete.obs")
 ```
@@ -232,6 +240,7 @@ cor.test(x3, y3, use="pairwise.complete.obs")
 ## 4.c Population Density and Distance To Nearest Munimeter
 Result: Not Statistically Significant
 ```{r}
+##reassign short names
 x4 <- precincts$PRECINCT_POPDENSITY
 y4 <- precincts$DIST_MUNI_MEAN
 t.test(x4, y4, use="pairwise.complete.obs") #??? 0.05.. nope 
@@ -241,16 +250,20 @@ cor.test(x4, y4, use="pairwise.complete.obs")
 ## 4.c Population Density and Distance To Nearest Library
 Result: Not Statistically Significant
 ```{r}
+##reassign short names
 x5 <- precincts$PRECINCT_POPDENSITY
 y5 <- precincts$DIST_LIB_MEAN
+## Tests below
 t.test(x5, y5, use="pairwise.complete.obs") #??? 0.05.. nope 
 cor.test(x5, y5, use="pairwise.complete.obs")
 ```
 ## 4.d Population Density and Larceny
 Result: Not statty significant
 ```{r}
+##reassign short names
 x6 <- precincts$PRECINCT_POPDENSITY
 y6 <- precincts$LARCENIES_PRECINCT
+## Tests below
 t.test(x6, y6, use="pairwise.complete.obs") #??? 0.05.. nope 
 cor.test(x6, y6, use="pairwise.complete.obs")
 ```
@@ -259,9 +272,12 @@ cor.test(x6, y6, use="pairwise.complete.obs")
 ## 5.a Petty Larceny per Capita and Distance to Nearest Subway Entrance
 p-values: .8919 and .8345
 ```{r}
+## Check names so you dont have to scroll up
 colnames(precinct_percap)
+##reassign short names
 x1 <- precinct_percap$LARCENY_PER_CAPITA
 y1 <- precincts$DIST_ENTR_MEAN
+## Tests below
 t.test(x1, y1, use="pairwise.complete.obs") #??? 0.05.. no
 cor.test(x1, y1, use="pairwise.complete.obs")
 ```
@@ -269,8 +285,10 @@ cor.test(x1, y1, use="pairwise.complete.obs")
 ## 5.b Petty Larceny per Capita and Distance to Nearest Bus Stop Shelter
 p-value: .4369, 0.009501
 ```{r}
+##reassign short names
 x2 <- precinct_percap$LARCENY_PER_CAPITA
 y2 <- precincts$DIST_SHLTR_MEAN
+## Tests below
 t.test(x2, y2, use="pairwise.complete.obs") 
 cor.test(x2, y2, use="pairwise.complete.obs") # Yes tho...
 ```
@@ -278,8 +296,10 @@ cor.test(x2, y2, use="pairwise.complete.obs") # Yes tho...
 ## 5.c Petty Larceny per Capita and Distance To Nearest wifi location
 p-value: 0.6292, 0.9251
 ```{r}
+##reassign short names
 x3 <- precinct_percap$LARCENY_PER_CAPITA
 y3 <- precincts$DIST_WIFI_MEAN
+## Tests below
 t.test(x3, y3, use="pairwise.complete.obs") #??? 0.05.. nope 
 cor.test(x3, y3, use="pairwise.complete.obs")
 ```
@@ -287,8 +307,10 @@ cor.test(x3, y3, use="pairwise.complete.obs")
 ## 5.d Petty Larceny per Capita and Distance To Nearest Munimeter
 p-value: 0.499, 0.7315
 ```{r}
+##reassign short names
 x4 <- precinct_percap$LARCENY_PER_CAPITA
 y4 <- precincts$DIST_MUNI_MEAN
+## Tests below
 t.test(x4, y4, use="pairwise.complete.obs") #??? 0.05.. nope 
 cor.test(x4, y4, use="pairwise.complete.obs")
 ```
@@ -296,10 +318,12 @@ cor.test(x4, y4, use="pairwise.complete.obs")
 ## 5.e Petty Larceny per Capita and Distance To Nearest Library
 p-value: 0.9907, 0.1769
 ```{r}
+##reassign short names
 x5 <- precinct_percap$LARCENY_PER_CAPITA
 y5 <- precincts$DIST_LIB_MEAN
+## Tests below
 t.test(x5, y5, use="pairwise.complete.obs") #??? 0.05.. nope 
 cor.test(x5, y5, use="pairwise.complete.obs")
 ```
-
+THE_END!
 
