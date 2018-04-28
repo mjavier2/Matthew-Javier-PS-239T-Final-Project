@@ -6,13 +6,11 @@
     Onto the process itself. The datasets are sourced from NYC's Open Data R is used to clean the raw crime data, cutting out unimportant columns and isolating the data down to April 2017's petit larceny incidents. Then I began to clean the precinct data by merging the populations and shape area columns into one, to which I then calculated the pop density per squar mile. Once this was done I loaded the datasets (crime, precinct, subway, bus, wifi, munimeter, library) into QGIS. In QGIS I ran a KNN algorithm called the distance matrix located in the vector analysis tool between petit larcenies and each variable. I also used the count points in polygon feature to find out how many larcenies and variables existed in each precinct. From here I merged the distance results into the petitlarceny dataframe while the polygon counts were merged with the precinct data. From here, I aggregated each precincts larcenies' distances to x variable and then merged the means and medians into the the precinct dataframe. I then created a separate dataset, precinct_summary, to display the average characteristics of each precinct. Another dataset was formed from the main precincts one to hold the per capita larenies and per capita of x variable. Once this was done, I did some visualization with ggplot2. I compared several variables such as pop density and distance to subway entrance. Each comparison had the absolute numbers of x variable as well as positions relative to other precincts. After this I conducted some statistical analysis with the t.test and cor.test functions of R. 
 
 ## Dependencies
-
 1. R, version 3.4.4
 2. RStudio, version 1.1442
 2. QGIS, version 3.0.1
 
 ## Files
-
 ### Data
 #### Infrastructure Data
 1.nypp.csv: NYPD precinct multipoint polygons. Note, precinct 61 was a broken polygon, I literally drew the precinct by hand to solve this. Available here: https://data.cityofnewyork.us/Public-Safety/Police-Precincts/78dh-3ptz:
