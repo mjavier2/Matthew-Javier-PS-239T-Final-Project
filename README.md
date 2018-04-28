@@ -41,14 +41,15 @@
 4. munimeters2population.pdf: Graph comparing number of munimeters to pop density.
 5. libraries2population.pdf:Graph comparing number of public libaries to precincts pop density.
 6. MeanVariableDistance2Larceny.pdf: Graphs the mean variable distances from a larceny with regards to each precinct.
-7. precinctsbylarcenies.png:
-subwayentrances.png:
-busstopshelters.png:
-wifilocations.png:
-munimeters.png:
-libraries.png:
-Note: All graphs that have been uploaded are the relative positions among precincts 
-3. NYC_MAP.qgis: Map with all the different layers in it. Also if you load it, you need to make sure you select the one that ends in 
+Note: All graphs that have been uploaded are the relative positions among precincts.
+The following are maps produced from QGIS
+7. precinctsbylarcenies.png: Precinct heatmap of larcenies.
+8. subwayentrances.png: Locations of subway entrances.
+9. busstopshelters.png: Locations of bus stop shelters.
+10. wifilocations.png: Locations of wifi locations.
+11. munimeters.png: Locations of munimeters.
+libraries.png: Locations of public libraries.
+12. NYC_MAP.qgis: Map with all the different layers in it. Also if you load it, you need to make sure you select the one that ends in 
 ".qgis" not ".gis~". As with the shp file, all these file have to be present in the same folder.
 ## More Information
 
