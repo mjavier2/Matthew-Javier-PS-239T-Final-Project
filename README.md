@@ -35,10 +35,21 @@
 2. 02_Matt-Javier-Analysis.rmd: Further distills precinct data, constructs graphs, and also checks the statistics.
 
 ### Results
-
-1. precinctsbylarcenies.png
-2. regression-table.txt: Summarizes the results of OLS regression, modelling *nyt* on a number of covariates.
-
+1. subwayentrance2population.pdf: Graph comparing number of subway entrances to precinct's pop density.
+2. Bus2population.pdf: Graph comparing bus stop shelters to pop density.
+3. wifilocations2population.pdf: Graph comparing wifi hotspots to pop density.
+4. munimeters2population.pdf: Graph comparing number of munimeters to pop density.
+5. libraries2population.pdf:Graph comparing number of public libaries to precincts pop density.
+6. MeanVariableDistance2Larceny.pdf: Graphs the mean variable distances from a larceny with regards to each precinct.
+7. precinctsbylarcenies.png:
+subwayentrances.png:
+busstopshelters.png:
+wifilocations.png:
+munimeters.png:
+libraries.png:
+Note: All graphs that have been uploaded are the relative positions among precincts 
+3. NYC_MAP.qgis: Map with all the different layers in it. Also if you load it, you need to make sure you select the one that ends in 
+".qgis" not ".gis~". As with the shp file, all these file have to be present in the same folder.
 ## More Information
 
 Include any other details you think your user might need to reproduce your results. You may also include other information such as your contact information, credits, etc.
