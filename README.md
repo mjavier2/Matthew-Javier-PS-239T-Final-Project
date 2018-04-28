@@ -50,5 +50,4 @@ libraries.png: Locations of public libraries.
 12. NYC_MAP.qgis: Map with all the different layers in it. Also if you load it, you need to make sure you select the one that ends in 
 ".qgis" not ".gis~". As with the shp file, all these file have to be present in the same folder.
 ## More Information
-
-Include any other details you think your user might need to reproduce your results. You may also include other information such as your contact information, credits, etc.
+The steps to reproduce the results from QGIS are seen in the QGIS Process folder. There it shows the Distance Matrix and Count Points in Polygon tools.
